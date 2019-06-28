@@ -1,7 +1,10 @@
 from flask import Flask, jsonify, request, send_file
+from random import randint
 import os
 
 app = Flask(__name__)
+app.config["IMAGE_UPLOADS"] = "/root/oniro-media-server"
+app.config["HOST_IP"] = "45.76.47.94:8082"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 
@@ -12,8 +15,12 @@ def is_file_valid(filename):
 @app.route('/mediaserver', methods=['POST'])
 def add_image():
 
-    if "user" not in request.form:
+    params = request.form
+
+    if "user" not in params:
         return jsonify(status="error", message="user is a mandatory parameter")
+
+    user = params["user"]
 
     if "file" not in request.files or request.files["file"].filename == '':
         return jsonify(status="error", message="no file sent")
@@ -24,11 +31,9 @@ def add_image():
         return jsonify(status="error", message="file is not valid")
 
     try:
-        if not os.path.exists(request.form["user"]):
-            os.mkdir(request.form["user"])
-        path = request.form["user"] + "/propic"+filename[-4:]
-        request.files["file"].save(path)
-        return jsonify(status="ok", path="http://"+request.host+"/mediaserver/"+path)
+        path = user + "-propic"+str(randint(0,1000000))+filename[-4:]
+        request.files["file"].save(os.path.join(app.config["IMAGE_UPLOADS"], path))
+        return jsonify(status="ok", path="http://"+ app.config["HOST_IP"] +"/mediaserver/"+path)
 
     except Exception as e:
         return jsonify(status="error", message=str(e))
